@@ -1,0 +1,14 @@
+{
+  "n_hidden": 128,
+  "n_trajectories": 10,
+  "t_train": 10.0,
+  "skip": 10,
+  "n_samples": 200000,
+  "epochs_stage1": 30,
+  "lr_stage1": 0.05,
+  "epochs_stage2": 100,
+  "lr_stage2": 0.001,
+  "seed": 0,
+  "final_train_loss": 0.0012812488712370396,
+  "final_val_loss": 0.0015247236005961895
+}
