@@ -1,0 +1,15 @@
+{
+  "hidden": 128,
+  "n_traj": 200,
+  "t_train": 80.0,
+  "skip": 10,
+  "seed": 0,
+  "n_samples": 32000000,
+  "epochs2": 2000,
+  "lr2": 0.001,
+  "batch": 128,
+  "patience": 20,
+  "thresh": 1e-08,
+  "best_val_final": 0.0005516042538806796,
+  "note": "paper-scale (Timofeyev et al. 2025): n=200, T=80; skip=10; SGD batch 128; stage1 500ep@0.05 (early-stopped ~ep121), stage2 2000ep@0.001 with early stopping; resumed once"
+}
