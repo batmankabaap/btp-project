@@ -1,0 +1,18 @@
+{
+  "name": "Shallow water, H0 = 1.0",
+  "category": "tough",
+  "setup": "IC 2 at half the training depth, H0 = 1.0, with waves Ah = 0.3.",
+  "expect": "Shallow water lowers the wave speed and the troughs get close to the bottom, far from anything in training. The unlimited network can push h negative.",
+  "observed": "The NN without the limiter blows up: h goes negative and the run turns to NaN ('blew up' in the table). MCL-NN keeps h positive and stays within 1% in h and 3.3% in q. This is the positivity guarantee in action.",
+  "type": "sine",
+  "H0": 1.0,
+  "Ah": 0.3,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.5,
+  "kv": 3,
+  "phiv": 4.5,
+  "t_end": 100,
+  "dt": 0.05
+}

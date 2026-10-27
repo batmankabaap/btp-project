@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SWE Subgrid Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f7f4; --card: #ffffff; --fg: #1c1c1a; --muted: #6a6a64; --line: #e0e0d9;
+    --accent: #1f5fbf; --accent-fg: #ffffff; --bad: #b3261e; --grid: #ececE6;
+    --dns: #111111; --nn: #1f77b4; --mcl: #d62728; --llf: #8c6d1f; --init: #9a9a92;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --card: #1d1d1b; --fg: #ececE8; --muted: #a2a29a; --line: #34342f;
+      --accent: #6aa0ff; --accent-fg: #0d1a2e; --bad: #ff7a70; --grid: #2a2a26;
+      --dns: #f2f2ee; --nn: #5aa9e6; --mcl: #ff6b6b; --llf: #d6b25e; --init: #77776f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .page { max-width: 1600px; margin: 0 auto; padding: 20px 16px 48px; }
+  header h1 { font-size: 22px; margin: 0; }
+  header p { margin: 2px 0 16px; color: var(--muted); }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted);
+                 padding: 8px 14px; font: inherit; cursor: pointer; }
+  .tabs button.active { color: var(--fg); border-color: var(--accent); font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  h2 { font-size: 15px; margin: 0 0 10px; }
+  h2 small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+  h3 { font-size: 13px; margin: 16px 0 6px; color: var(--muted); font-weight: 600;
+       text-transform: uppercase; letter-spacing: .04em; }
+  .sim { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .sim { grid-template-columns: 1fr; } }
+  .results { display: grid; gap: 16px; min-width: 0; }
+  .samples { display: grid; gap: 6px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+  .group { font-size: 12px; color: var(--muted); margin: 8px 0 0; font-weight: 600; }
+  .group small { font-weight: 400; }
+  .samples button { text-align: left; background: var(--bg); border: 1px solid var(--line); color: var(--fg);
+                    border-radius: 8px; padding: 7px 10px; font: inherit; cursor: pointer; }
+  .samples button:hover, .samples button.active { border-color: var(--accent); }
+  .desc { font-size: 13.5px; }
+  .desc:empty { display: none; }
+  .desc .part { margin: 6px 0 0; }
+  .desc .part b { color: var(--fg); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 99px; padding: 1px 8px;
+         margin-right: 6px; border: 1px solid var(--line); color: var(--muted); }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 99px; padding: 1px 8px;
+           margin-left: 8px; background: var(--accent); color: var(--accent-fg); }
+  textarea { width: 100%; min-height: 200px; font: 12.5px/1.45 ui-monospace, Menlo, monospace;
+             background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px;
+             padding: 8px; resize: vertical; }
+  .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .btn { border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 8px;
+         padding: 8px 14px; font: inherit; cursor: pointer; }
+  .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+  .btn:disabled { opacity: .55; cursor: progress; }
+  .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .error { color: var(--bad); font-size: 13px; margin-top: 8px; min-height: 1em; }
+  .status { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+  .legend { display: flex; gap: 8px 18px; flex-wrap: wrap; align-items: center; padding: 10px 16px; }
+  .legend button { background: none; border: 0; color: var(--fg); font: inherit; font-size: 13px;
+                   cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+  .legend button.off { opacity: .35; text-decoration: line-through; }
+  .legend label { font-size: 13px; color: var(--muted); }
+  .swatch { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+  .models { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .models .card { padding: 12px 10px 4px; min-width: 0; }
+  .models h2 { padding-left: 6px; margin-bottom: 4px; }
+  .models h2 small { display: block; margin: 0; font-size: 12px; min-height: 1.5em; }
+  .plot { height: 250px; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  td.best { font-weight: 700; box-shadow: inset 0 0 0 2px var(--accent); border-radius: 4px; }
+  td.dead { color: var(--muted); background: repeating-linear-gradient(135deg, transparent 0 5px, var(--line) 5px 6px); }
+  .wrap { overflow-x: auto; }
+  .matrix td, .matrix th { text-align: center; }
+  .matrix td:first-child, .matrix th:first-child { text-align: left; white-space: nowrap; }
+  .matrix .catrow td { text-align: left; color: var(--muted); font-size: 12px; font-weight: 600; padding-top: 12px;
+                       border-bottom: 0; }
+  .controls { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 800px) { .pair { grid-template-columns: 1fr; } }
+  figure { margin: 0; }
+  figcaption { color: var(--muted); font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  figure img { width: 100%; background: #fff; border-radius: 6px; display: block; margin-bottom: 6px; }
+  .compare section { margin-bottom: 18px; }
+  .note { border-left: 3px solid var(--accent); padding: 6px 12px; color: var(--muted); margin: 0 0 12px; }
+  .stack { display: grid; gap: 16px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>NN subgrid fluxes + MCL for the shallow-water equations</h1>
+    <p>Timofeyev, Schwarzmann &amp; Kuzmin (2025) reimplementation. Every trained network on the same test case, against the 2000-cell reference.</p>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="sim" class="active">Simulator</button>
+    <button data-tab="matrix">Model comparison</button>
+    <button data-tab="compare">Paper vs ours</button>
+  </nav>
+
+  <main id="tab-sim" class="sim">
+    <aside class="card">
+      <h2>Test case</h2>
+      <h3>Samples <small>(pre-computed)</small></h3>
+      <div class="samples" id="samples"></div>
+
+      <h3>Upload</h3>
+      <input type="file" id="upload" accept=".json,application/json">
+      <p class="hint">A JSON file like the samples: <code>type</code> <code>"sine"</code> (eq. 15: H0, Ah, kh, phih, V0, Av, kv, phiv) or <code>"step"</code> (eq. 32: H0, a), plus <code>t_end</code> ≤ 400 and coarse <code>dt</code> in [0.005, 0.1].</p>
+
+      <h3>Case (editable)</h3>
+      <textarea id="case" spellcheck="false"></textarea>
+      <div class="row">
+        <button class="btn primary" id="run">Run live</button>
+        <span class="hint" style="margin:0">runs every network; t = 200 at dt = 0.005 takes ~2 min</span>
+      </div>
+      <div class="error" id="error"></div>
+    </aside>
+
+    <section class="results">
+      <div class="card">
+        <div class="status" id="status">Pick a sample or upload a case.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+
+      <div class="card legend" id="legend"></div>
+
+      <div class="models" id="models"></div>
+
+      <div class="card">
+        <h2>Comparison for this case <small>error vs the fine DNS averaged onto the 100 coarse cells</small></h2>
+        <div class="wrap"><table>
+          <thead><tr><th>Model</th><th>cells</th><th>time step</th><th>run time</th><th>speed-up</th>
+            <th>h error</th><th>q error</th><th>q oscillation</th><th>min h</th></tr></thead>
+          <tbody id="errors"><tr><td colspan="9" class="status">—</td></tr></tbody>
+        </table></div>
+        <p class="hint">Outlined = lowest error among the networks. <b>q oscillation</b> is the total variation of q divided by the DNS's: 1× is right, above 1× means spurious wiggles, below 1× means smoothed-out waves. Speed-up is DNS run time ÷ model run time on this machine: a real gain needs a larger coarse time step (dt ≈ 0.05); at dt = 0.005 the networks are slower than the DNS.</p>
+      </div>
+    </section>
+  </main>
+
+  <main id="tab-matrix" class="stack" hidden>
+    <div class="card">
+      <h2>Models</h2>
+      <div class="wrap"><table id="model-table"></table></div>
+    </div>
+    <div class="card">
+      <div class="controls">
+        <h2 style="margin:0">All cases × all models</h2>
+        <label>metric
+          <select id="metric">
+            <option value="q_err">q error</option>
+            <option value="h_err">h error</option>
+            <option value="tv_ratio">q oscillation (total variation ÷ DNS)</option>
+            <option value="seconds">run time</option>
+          </select>
+        </label>
+      </div>
+      <div class="wrap"><table class="matrix" id="matrix"></table></div>
+      <p class="hint" id="matrix-hint"></p>
+    </div>
+    <div class="card">
+      <h2 id="summary-title">Summary</h2>
+      <div class="wrap"><table class="matrix" id="summary"></table></div>
+    </div>
+  </main>
+
+  <main id="tab-compare" class="compare" hidden>
+    <p class="note">Paper figures on the left, ours on the right. Line styles follow the paper: black DNS, blue dash-dot NN, red dashed MCL-NN. Figs. 11–12 in the paper show four network sizes; ours only N<sub>hid</sub> = 128. Our Fig. 6 MCL-LW baseline is less diffusive than the paper's, because the paper does not specify its Lax–Wendroff variant.</p>
+    <div id="compare-body"></div>
+  </main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+const MODEL_LABELS = {
+  h128: "Paper MLP, 3 × 128",
+  small32: "Small MLP, 3 × 32",
+  mirror128: "Mirror-symmetric MLP, 3 × 128",
+};
+const label = name => MODEL_LABELS[name] || name;
+
+const CURVES = [
+  { id: "dns", label: "DNS, 2000 cells (ideal)", color: "--dns", dash: "solid", style: "solid", width: 2 },
+  { id: "llf", label: "plain coarse LLF", color: "--llf", dash: "dot", style: "dotted", width: 1.6 },
+  { id: "nn", label: "NN-reduced", color: "--nn", dash: "dashdot", style: "dashed", width: 1.8 },
+  { id: "mcl", label: "MCL-NN-reduced", color: "--mcl", dash: "dash", style: "dashed", width: 1.8 },
+];
+
+const GROUPS = {
+  paper: ["Paper cases", "reproduce figures of Sec. 4"],
+  generalization: ["Outside training", "should still work"],
+  tough: ["Tough", "NN alone often blows up, MCL-NN survives"],
+  breaks: ["Where the method breaks", "large errors even with MCL"],
+};
+
+const state = { data: null, summary: null, hidden: new Set(), showInit: false, fit: false, meta: {} };
+
+// ---------------------------------------------------------------- tabs
+function openTab(name) {
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  for (const t of ["sim", "matrix", "compare"]) $(`tab-${t}`).hidden = t !== name;
+  if (name === "matrix") renderMatrix();
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => openTab(b.dataset.tab));
+
+// ---------------------------------------------------------------- formatting
+const pct = v => v == null ? "blew up" : `${(100 * v).toFixed(v < 0.001 ? 3 : 2)} %`;
+const times = v => v == null ? "blew up" : `${v.toFixed(2)}×`;
+const secs = s => s < 1 ? `${Math.round(1000 * s)} ms` : `${s.toFixed(1)} s`;
+
+function swatch(c) {
+  return `<span class="swatch" style="border-color:${css(c.color)};border-top-style:${c.style}"></span>`;
+}
+
+function variantName(key) {
+  if (key === "fine") return `${swatch(CURVES[0])}DNS, 2000 cells (ideal)`;
+  if (key === "llf") return `${swatch(CURVES[1])}plain coarse LLF`;
+  const [model, kind] = key.split("/");
+  const c = CURVES.find(x => x.id === kind);
+  return `${swatch(c)}${label(model)} · ${c.label}`;
+}
+
+// ---------------------------------------------------------------- description
+function describe(c) {
+  const tag = GROUPS[c.category] ? `<span class="tag">${GROUPS[c.category][0]}</span>` : "";
+  const parts = [["Setup", c.setup], ["What to expect", c.expect], ["What happens", c.observed]]
+    .filter(([, text]) => text)
+    .map(([k, text]) => `<p class="part"><b>${k}.</b> ${esc(text)}</p>`);
+  if (!parts.length && c.description) parts.push(`<p class="part">${esc(c.description)}</p>`);
+  if (!parts.length) return "";
+  const note = c.observed
+    ? `<p class="hint">Numbers in "What happens" are for the paper's 3 × 128 network; the other panels show how the other networks compare.</p>` : "";
+  return tag + parts.join("") + note;
+}
+
+// ---------------------------------------------------------------- plots
+function yRange(d, comp) {
+  const finite = a => a.filter(v => v != null);
+  let pool = finite(d.fine[comp]);
+  if (state.fit) {
+    for (const m of d.models)
+      for (const c of CURVES.slice(1)) {
+        const key = c.id === "llf" ? "llf" : `${m}/${c.id}`;
+        if (!state.hidden.has(c.id)) pool.push(...finite(d.curves[key][comp]));
+      }
+    const lo = Math.min(...pool), hi = Math.max(...pool), pad = 0.05 * (hi - lo || 1);
+    return [lo - pad, hi + pad];
+  }
+  const lo = Math.min(...pool), hi = Math.max(...pool), pad = 0.4 * (hi - lo || 0.1);
+  return [lo - pad, hi + pad];
+}
+
+function traces(d, model, comp) {
+  const line = (x, y, c, name) => ({
+    x, y, name, mode: "lines", line: { color: css(c.color), dash: c.dash, width: c.width },
+    hovertemplate: `${name}: %{y:.4f}<extra></extra>`,
+  });
+  const out = [];
+  if (state.showInit) out.push(line(d.x, d.initial[comp],
+    { color: "--init", dash: "dot", width: 1.2 }, "initial (t = 0)"));
+  const draw = (c, x, y) => { if (!state.hidden.has(c.id)) out.push(line(x, y, c, c.label)); };
+  draw(CURVES[0], d.x_fine, d.fine[comp]);
+  draw(CURVES[1], d.x, d.curves.llf[comp]);
+  draw(CURVES[2], d.x, d.curves[`${model}/nn`][comp]);
+  draw(CURVES[3], d.x, d.curves[`${model}/mcl`][comp]);
+  return out;
+}
+
+function drawModels() {
+  const d = state.data;
+  if (!d) return;
+  const host = $("models");
+  host.querySelectorAll(".plot").forEach(p => Plotly.purge(p));
+  host.innerHTML = d.models.map(m => {
+    const info = state.summary?.models?.[m];
+    const sub = info ? `${info.params.toLocaleString()} params · ${info.us_per_call} µs/call` : "";
+    return `<div class="card"><h2>${esc(label(m))}<small>${sub}</small></h2>
+      <div class="plot" id="plot-${m}-h"></div><div class="plot" id="plot-${m}-q"></div></div>`;
+  }).join("");
+
+  for (const m of d.models) for (const comp of ["h", "q"]) {
+    Plotly.newPlot(`plot-${m}-${comp}`, traces(d, m, comp), {
+      paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+      font: { color: css("--fg"), family: "system-ui, sans-serif", size: 11 },
+      margin: { l: 46, r: 8, t: 8, b: 32 }, showlegend: false, hovermode: "x unified",
+      xaxis: { title: comp === "q" ? "x" : "", gridcolor: css("--grid"), zeroline: false },
+      yaxis: { title: comp, gridcolor: css("--grid"), zeroline: false, range: yRange(d, comp) },
+    }, { responsive: true, displaylogo: false });
+  }
+}
+
+function drawLegend() {
+  $("legend").innerHTML = CURVES.map(c =>
+    `<button data-id="${c.id}" class="${state.hidden.has(c.id) ? "off" : ""}">${swatch(c)}${c.label}</button>`).join("") +
+    `<label><input type="checkbox" id="show-init" ${state.showInit ? "checked" : ""}> initial state</label>
+     <label title="By default the y-range follows the DNS, so runaway curves are clipped">
+       <input type="checkbox" id="fit" ${state.fit ? "checked" : ""}> fit all curves</label>`;
+  $("legend").querySelectorAll("button").forEach(b => b.onclick = () => {
+    state.hidden.has(b.dataset.id) ? state.hidden.delete(b.dataset.id) : state.hidden.add(b.dataset.id);
+    redraw();
+  });
+  $("show-init").onchange = e => { state.showInit = e.target.checked; redraw(); };
+  $("fit").onchange = e => { state.fit = e.target.checked; redraw(); };
+}
+
+// ---------------------------------------------------------------- per-case table
+function drawTable() {
+  const d = state.data, M = d.metrics;
+  const keys = ["fine", "llf", ...d.models.flatMap(m => [`${m}/nn`, `${m}/mcl`])];
+  const nets = keys.filter(k => k.includes("/"));
+  const lowest = comp => {
+    const vals = nets.map(k => M[k][comp]).filter(v => v != null);
+    return vals.length ? Math.min(...vals) : null;
+  };
+  const bestH = lowest("h_err"), bestQ = lowest("q_err");
+  $("errors").innerHTML = keys.map(k => {
+    const m = M[k], isFine = k === "fine";
+    const cell = (v, bestV) => {
+      if (isFine) return `<td>reference</td>`;
+      if (v == null) return `<td class="dead">blew up</td>`;
+      return `<td class="${nets.includes(k) && v === bestV ? "best" : ""}">${pct(v)}</td>`;
+    };
+    return `<tr><td>${variantName(k)}</td><td>${m.cells}</td><td>${+m.dt.toPrecision(6)}</td>
+      <td>${secs(m.seconds)}</td><td>${isFine ? "1×" : (M.fine.seconds / m.seconds).toFixed(1) + "×"}</td>
+      ${cell(m.h_err, bestH)}${cell(m.q_err, bestQ)}
+      <td>${isFine ? "1×" : times(m.tv_ratio)}</td><td>${m.h_min == null ? "&lt; 0" : m.h_min.toFixed(3)}</td></tr>`;
+  }).join("");
+}
+
+function redraw() {
+  drawLegend();
+  drawModels();
+}
+
+function show(data, source) {
+  state.data = data;
+  $("status").innerHTML = `${esc(data.name || "Uploaded case")} — t = ${data.t_end}, coarse dt = ${data.dt}` +
+    `<span class="badge">${source}</span>`;
+  redraw();
+  drawTable();
+}
+
+// ---------------------------------------------------------------- samples
+function setCase(obj) {
+  const META = ["name", "category", "setup", "expect", "observed", "description"];
+  state.meta = Object.fromEntries(META.filter(k => k in obj).map(k => [k, obj[k]]));
+  $("case").value = JSON.stringify(Object.fromEntries(Object.entries(obj).filter(([k]) => !META.includes(k))), null, 2);
+  $("desc").innerHTML = describe(obj);
+  $("error").textContent = "";
+}
+
+async function loadPrecomputed(id, sample) {
+  setCase(sample);
+  $("status").textContent = "Loading pre-computed results …";
+  const r = await fetch(`/artifacts/precomputed/${id}.json`);
+  if (!r.ok) {
+    $("status").textContent = "Not pre-computed yet (run scripts/precompute.py), or press Run live.";
+    return;
+  }
+  show(await r.json(), "pre-computed");
+}
+
+fetch("/artifacts/precomputed/summary.json").then(r => r.ok ? r.json() : null).then(s => {
+  state.summary = s;
+  if (state.data) drawModels();
+  renderMatrix();
+});
+
+fetch("/api/samples").then(r => r.json()).then(samples => {
+  const box = $("samples");
+  const linked = new URLSearchParams(location.search).get("case");
+  let first = !(linked in samples);
+  for (const [key, [title, sub]] of Object.entries(GROUPS)) {
+    const inGroup = Object.entries(samples).filter(([, c]) => c.category === key);
+    if (!inGroup.length) continue;
+    box.insertAdjacentHTML("beforeend", `<div class="group">${title} <small>— ${sub}</small></div>`);
+    for (const [id, c] of inGroup) {
+      const b = document.createElement("button");
+      b.textContent = c.name;
+      b.onclick = () => {
+        box.querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
+        loadPrecomputed(id, c);
+      };
+      box.appendChild(b);
+      if (first || id === linked) { b.click(); first = false; }
+    }
+  }
+});
+
+$("upload").onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    setCase(JSON.parse(await file.text()));
+    document.querySelectorAll("#samples button").forEach(x => x.classList.remove("active"));
+  } catch {
+    $("error").textContent = "Could not parse that file as JSON.";
+  }
+};
+
+$("run").onclick = async () => {
+  let c;
+  try { c = { ...state.meta, ...JSON.parse($("case").value) }; }
+  catch { $("error").textContent = "Case is not valid JSON."; return; }
+
+  $("error").textContent = "";
+  $("run").disabled = true;
+  $("status").textContent = `Running the DNS and every network live to t = ${c.t_end ?? 200} …`;
+  try {
+    const r = await fetch("/api/simulate", { method: "POST", body: JSON.stringify(c) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    show({ ...data, name: c.name }, "live");
+  } catch (err) {
+    $("error").textContent = err.message;
+    $("status").textContent = "Run failed.";
+  } finally {
+    $("run").disabled = false;
+  }
+};
+
+// ---------------------------------------------------------------- model comparison tab
+const clamp = x => Math.max(0, Math.min(1, x));
+// badness in [0, 1] (0 = good): heat colour and "best" marks
+const METRICS = {
+  q_err: { label: "q error", fmt: pct, bad: v => clamp(Math.log10(v / 0.002) / Math.log10(500)) },
+  h_err: { label: "h error", fmt: pct, bad: v => clamp(Math.log10(v / 0.0005) / Math.log10(200)) },
+  tv_ratio: { label: "q oscillation", fmt: times, bad: v => clamp(Math.abs(Math.log2(v)) / 3) },
+  seconds: { label: "run time", fmt: secs, bad: null },
+};
+const heat = b => b == null ? "" : `style="background:hsla(${Math.round(140 - 140 * b)},65%,45%,0.30)"`;
+
+function median(values) {
+  const v = values.map(x => x == null ? Infinity : x).sort((a, b) => a - b);
+  if (!v.length) return null;
+  const m = v.length >> 1;
+  const r = v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  return Number.isFinite(r) ? r : null;
+}
+
+function renderMatrix() {
+  const s = state.summary;
+  const hint = $("matrix-hint");
+  if (!s) {
+    $("matrix").innerHTML = "";
+    hint.textContent = "No pre-computed results yet: run scripts/precompute.py.";
+    return;
+  }
+  const names = Object.keys(s.models);
+  const variants = ["llf", ...names.flatMap(m => [`${m}/nn`, `${m}/mcl`])];
+  const nets = variants.filter(k => k !== "llf");
+  const metricId = $("metric").value, M = METRICS[metricId];
+  const cases = Object.entries(s.cases);
+
+  $("model-table").innerHTML = `<thead><tr><th>Model</th><th>architecture</th><th>parameters</th>
+    <th>µs per call</th><th>validation loss</th></tr></thead><tbody>` + names.map(n => {
+      const m = s.models[n];
+      return `<tr><td>${esc(label(n))}</td><td>3 × ${m.arch.hidden}${m.arch.symmetric ? ", mirror symmetric" : ""}</td>
+        <td>${m.params.toLocaleString()}</td><td>${m.us_per_call}</td>
+        <td>${m.best_valid == null ? "—" : m.best_valid.toExponential(2)}</td></tr>`;
+    }).join("") + "</tbody>";
+
+  // run time has no absolute scale, so colour it relative to this matrix
+  let bad = M.bad;
+  if (!bad) {
+    const all = cases.flatMap(([, c]) => variants.map(k => c.metrics[k].seconds));
+    const lo = Math.log10(Math.min(...all)), hi = Math.log10(Math.max(...all));
+    bad = v => clamp((Math.log10(v) - lo) / (hi - lo || 1));
+  }
+  const score = v => v == null ? Infinity : bad(v);
+
+  const head = `<thead><tr><th rowspan="2">Case</th><th rowspan="2">plain LLF</th>` +
+    names.map(n => `<th colspan="2">${esc(label(n))}</th>`).join("") + `</tr><tr>` +
+    names.map(() => `<th>NN</th><th>MCL-NN</th>`).join("") + `</tr></thead>`;
+
+  let body = "";
+  for (const [key, [title]] of Object.entries(GROUPS)) {
+    const rows = cases.filter(([, c]) => c.category === key);
+    if (!rows.length) continue;
+    body += `<tr class="catrow"><td colspan="${variants.length + 1}">${title}</td></tr>`;
+    for (const [id, c] of rows) {
+      const best = Math.min(...nets.map(k => score(c.metrics[k][metricId])));
+      body += `<tr><td><a href="/?case=${id}" style="color:inherit">${esc(c.name)}</a></td>` +
+        variants.map(k => {
+          const v = c.metrics[k][metricId];
+          if (v == null) return `<td class="dead">blew up</td>`;
+          const isBest = k !== "llf" && score(v) === best;
+          return `<td class="${isBest ? "best" : ""}" ${heat(bad(v))}>${M.fmt(v)}</td>`;
+        }).join("") + `</tr>`;
+    }
+  }
+  $("matrix").innerHTML = head + `<tbody>${body}</tbody>`;
+  hint.textContent = metricId === "seconds"
+    ? "Colour: green = fastest, red = slowest. Outlined = fastest network in the row."
+    : "Colour: green = accurate, red = poor. Outlined = best network in the row. Click a case to open it.";
+
+  // summary by group, for the error metric chosen (q error unless h error is selected)
+  const sm = metricId === "h_err" ? "h_err" : "q_err";
+  $("summary-title").textContent = `Summary by group, median ${METRICS[sm].label}`;
+  const groupIds = Object.keys(GROUPS);
+  const wins = Object.fromEntries(nets.map(k => [k, 0]));
+  for (const [, c] of cases) {
+    const vals = nets.map(k => c.metrics[k][sm] ?? Infinity);
+    const lo = Math.min(...vals);
+    nets.forEach((k, i) => { if (vals[i] === lo) wins[k] += 1; });
+  }
+  const cell = v => v == null ? `<td class="dead">blew up</td>` : `<td ${heat(METRICS[sm].bad(v))}>${pct(v)}</td>`;
+  $("summary").innerHTML = `<thead><tr><th>Variant</th>${groupIds.map(g => `<th>${GROUPS[g][0]}</th>`).join("")}
+    <th>all cases</th><th>blew up</th><th>best in</th></tr></thead><tbody>` +
+    variants.map(k => {
+      const per = g => median(cases.filter(([, c]) => c.category === g).map(([, c]) => c.metrics[k][sm]));
+      const blew = cases.filter(([, c]) => c.metrics[k][sm] == null).length;
+      return `<tr><td>${variantName(k)}</td>${groupIds.map(g => cell(per(g))).join("")}
+        ${cell(median(cases.map(([, c]) => c.metrics[k][sm])))}<td>${blew}</td>
+        <td>${k === "llf" ? "—" : `${wins[k]} / ${cases.length}`}</td></tr>`;
+    }).join("") + "</tbody>";
+}
+$("metric").onchange = renderMatrix;
+
+// ---------------------------------------------------------------- paper vs ours tab
+const COMPARE = [
+  ["Fig. 2 — discharge q at t = 200, IC 1–4", ["fig2.jpg"], ["fig2_q_t200.png"]],
+  ["Fig. 3 — water height h at t = 200", ["fig3.jpg"], ["fig3_h_t200.png"]],
+  ["Fig. 4 — discharge q at t = 400", ["fig4.jpg"], ["fig4_q_t400.png"]],
+  ["Fig. 6 — MCL-LW vs MCL-NN, IC 1, t = 20", ["fig6.jpg"], ["fig6_lax_wendroff.png"]],
+  ["Fig. 7 — time steps 0.005 / 0.05 / 0.1, IC 2", ["fig7.jpg"], ["fig7_timesteps_ic2.png"]],
+  ["Fig. 8 — time steps, IC 3", ["fig8.jpg"], ["fig8_timesteps_ic3.png"]],
+  ["Figs. 11–12 — H0 = 1.5 and 2.5, outside training", ["fig11.jpg", "fig12.jpg"], ["fig11_12_generalization.png"]],
+  ["Fig. 13 — non-smooth step IC", ["fig13.jpg"], ["fig13_nonsmooth.png"]],
+];
+$("compare-body").innerHTML = COMPARE.map(([title, paper, ours]) => `
+  <section class="card"><h2>${title}</h2><div class="pair">
+    <figure><figcaption>Paper</figcaption>${paper.map(f => `<img loading="lazy" src="/artifacts/paper_figures/${f}" alt="paper ${f}">`).join("")}</figure>
+    <figure><figcaption>Ours</figcaption>${ours.map(f => `<img loading="lazy" src="/artifacts/results/${f}" alt="our ${f}">`).join("")}</figure>
+  </div></section>`).join("");
+
+if (["matrix", "compare"].includes(location.hash.slice(1))) openTab(location.hash.slice(1));
+</script>
+</body>
+</html>

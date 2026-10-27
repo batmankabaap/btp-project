@@ -1,0 +1,18 @@
+{
+  "name": "Table 1, IC 3",
+  "category": "paper",
+  "setup": "Table 1, IC 3 (Figs. 2\u20133, bottom left). Same as IC 2 but with velocity wavenumber kv = 4, which gives a cleaner, regular wave train.",
+  "expect": "Four regular waves. Plain LLF damps their amplitude strongly; the reduced models should keep the shape but may lose a little amplitude.",
+  "observed": "Shape and phase are right, but both reduced models under-predict the q peaks slightly (q error 0.42% NN, 0.51% MCL-NN). A small, systematic amplitude loss, the same as in the paper's figure.",
+  "type": "sine",
+  "H0": 2.0,
+  "Ah": 0.45,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.5,
+  "kv": 4,
+  "phiv": 4.5,
+  "t_end": 200,
+  "dt": 0.005
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Flow to the left, V0 = \u22121.5",
+  "category": "generalization",
+  "setup": "IC 2 with flow to the left, V0 = \u22121.5. Training only contained flow to the right (V0 > 0).",
+  "expect": "Physically this is just IC 2 mirrored, so a perfect model would be equally good. A network that never saw left-moving flow has no reason to know that.",
+  "observed": "With the paper's network both versions lose accuracy (h error 1.7\u20131.9%, q about 4%); the identical waves moving right (V0 = +1.5) give h errors of only 0.09% (NN) and 0.21% (MCL-NN). Switch the network to the mirror-symmetric MLP: q error drops to 0.36% (NN) and 0.69% (MCL-NN), because that network knows mirrored flows have mirrored fluxes.",
+  "type": "sine",
+  "H0": 2.0,
+  "Ah": 0.45,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": -1.5,
+  "Av": 0.5,
+  "kv": 3,
+  "phiv": 4.5,
+  "t_end": 100,
+  "dt": 0.05
+}

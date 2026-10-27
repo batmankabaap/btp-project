@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Neural subgrid fluxes with convex limiting — report</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+<style>
+  @page { size: A4; margin: 11mm 13mm 11mm 13mm; }
+  * { box-sizing: border-box; }
+  body { font: 9.3pt/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif; color: #1c1c1a; margin: 0; }
+  h1 { font-size: 17pt; line-height: 1.15; margin: 0 0 2px; }
+  .sub { color: #5d5d57; font-size: 8.6pt; margin: 0 0 7px; }
+  h2 { font-size: 11.3pt; margin: 9px 0 3px; color: #1f5fbf; border-bottom: 1px solid #d9e2f3; padding-bottom: 1px; }
+  h3 { font-size: 9.2pt; margin: 6px 0 1px; }
+  h2, h3 { break-after: avoid; }
+  p { margin: 3px 0; }
+  .katex { font-size: 1.03em; }
+  .katex-display { margin: 3px 0 !important; }
+  .callout { background: #eef3fb; border-left: 3px solid #1f5fbf; padding: 4px 8px; margin: 5px 0; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  ol, ul { margin: 2px 0 2px 15px; padding: 0; } li { margin: 1.2px 0; }
+  figure { margin: 4px 0; } figcaption { color: #4a4a45; font-size: 8pt; margin-top: 1px; }
+  table { border-collapse: collapse; width: 100%; font-size: 8pt; margin: 3px 0; }
+  th, td { border-bottom: 1px solid #dcdcd5; padding: 2px 4px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; } th { color: #55554f; font-weight: 600; }
+  code { font: 7.6pt ui-monospace, Menlo, monospace; background: #f1f1ec; padding: 0 2px; border-radius: 2px; }
+  .small { font-size: 8pt; color: #4a4a45; }
+  table.map td:last-child, table.map th:last-child { text-align: left; }
+  .gloss { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 16px; font-size: 8.3pt; margin: 3px 0; }
+  .gloss div { break-inside: avoid; } .gloss b { color: #1f5fbf; }
+  .pagebreak { break-before: page; }
+  .nobreak { break-inside: avoid; }
+</style></head><body>
+
+<h1>Neural subgrid fluxes with convex limiting for the shallow-water equations</h1>
+<p class="sub">What we built, the maths behind it, and how training and inference work. Reimplementation of
+Timofeyev, Schwarzmann &amp; Kuzmin, <i>Math. Comput. Simul.</i> 238 (2025) 163–178.</p>
+
+<h2>1. The idea</h2>
+<p>The shallow-water equations describe a water surface (a river, a coastal sea) by two fields: the depth
+\(h(x,t)\) and the discharge \(q=hv\) (depth × velocity). Resolving every wave takes a <b>fine mesh</b>: here
+2000 cells and a time step of 0.005. A <b>coarse mesh</b> of 100 cells is 20× smaller and tolerates a much larger
+time step, but the standard scheme (local Lax–Friedrichs, LLF) is numerically diffusive and smears the waves away.</p>
+<p>The paper's remedy: keep the cheap coarse solver and add a <b>correction flux</b> \(\tilde G\) predicted by a small
+neural network that was trained on fine-mesh data. A network can output anything, including a correction that drives
+the depth negative, so a limiter (<b>MCL</b>, monolithic convex limiting) clips \(\tilde G\) to a range in which the
+update is provably safe.</p>
+<div class="callout"><b>One line:</b> coarse state \(U\) → coarse LLF flux \(\bar F\) + network correction \(\tilde G\) → MCL clips it to
+\(\tilde G^{*}\) → flux \(F=\bar F+\tilde G^{*}\) → time step → next coarse state.</div>
+<div class="gloss">
+<div><b>DNS</b> — direct numerical simulation: the fine 2000-cell run, treated as the truth.</div>
+<div><b>Flux</b> — how much \(h\) or \(q\) crosses a cell interface per unit time.</div>
+<div><b>LLF</b> — local Lax–Friedrichs: a robust but diffusive way to compute the flux between two cells.</div>
+<div><b>Stencil</b> — the neighbouring cells a formula looks at (here 4 cells: \(i-1,\dots,i+2\)).</div>
+<div><b>Bar state</b> — the averaged solution of the two-cell problem; the building block of MCL.</div>
+<div><b>CFL condition</b> — the time step must be small enough that no wave crosses a whole cell per step.</div>
+<div><b>MCL</b> — monolithic convex limiting: clips a correction so bounds such as \(h>0\) hold.</div>
+<div><b>Heun</b> — a second-order, two-stage time-stepping method.</div>
+<div><b>Standardise</b> — shift and scale data to zero mean, unit variance before the network sees it.</div>
+<div><b>Early stopping</b> — stop training when the validation loss stops improving (guards against over-fitting).</div>
+</div>
+<figure>
+<svg viewBox="0 0 900 178" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif" fill="#1c1c1a">
+  <rect x="40" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="66" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="92" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="118" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="144" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="170" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="196" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="222" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="248" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="274" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="300" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="326" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="352" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="378" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="404" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="430" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="456" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="482" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="508" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="534" y="52" width="26" height="26" fill="#cfe0ff" stroke="#9a9a92" stroke-width="1"/><rect x="560" y="52" width="26" height="26" fill="#cfe0ff" stroke="#9a9a92" stroke-width="1"/><rect x="586" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="612" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="638" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="664" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="690" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="716" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="742" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="768" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/><rect x="794" y="52" width="26" height="26" fill="#f3f3ee" stroke="#9a9a92" stroke-width="1"/>
+  <line x1="560" y1="40" x2="560" y2="102" stroke="#1f5fbf" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="560" y="30" text-anchor="middle" font-size="14" fill="#1f5fbf">fine flux F(u<tspan dy="3" font-size="11">ki</tspan><tspan dy="-3"> </tspan>, u<tspan dy="3" font-size="11">ki+1</tspan><tspan dy="-3"> </tspan>) — uses the two fine cells beside the interface</text>
+  <path d="M43 90 V96 H297 V90" fill="none" stroke="#444" stroke-width="1.4"/><text x="170.0" y="118" text-anchor="middle" font-size="15">U<tspan dy="3" font-size="11">i−1</tspan></text><path d="M303 90 V96 H557 V90" fill="none" stroke="#444" stroke-width="1.4"/><text x="430.0" y="118" text-anchor="middle" font-size="15">U<tspan dy="3" font-size="11">i</tspan></text><path d="M563 90 V96 H817 V90" fill="none" stroke="#444" stroke-width="1.4"/><text x="690.0" y="118" text-anchor="middle" font-size="15">U<tspan dy="3" font-size="11">i+1</tspan></text>
+  <text x="560" y="146" text-anchor="middle" font-size="14">coarse flux F̄(U<tspan dy="3" font-size="11">i</tspan><tspan dy="-3"> </tspan>, U<tspan dy="3" font-size="11">i+1</tspan><tspan dy="-3"> </tspan>) — sees only the two averages</text>
+  <text x="560" y="169" text-anchor="middle" font-size="15" font-weight="700" fill="#c0392b">subgrid flux G<tspan dy="3" font-size="12">i+½</tspan><tspan dy="-3"> </tspan> = fine flux − coarse flux</text>
+</svg><figcaption><b>Fig. 1.</b> Fine and coarse mesh (k = 20 fine cells per macrocell in the real setup, 10 drawn).
+The exact subgrid flux \(G\) is what the coarse scheme gets wrong at an interface: the flux the fine solution really carries across it
+minus the flux the coarse solver computes from its averages alone.</figcaption></figure>
+
+<h2>2. The maths, step by step</h2>
+<h3>2.1 Equations</h3>
+<p>With \(u=[h,q]^T\) on a periodic domain \((0,L)\), \(L=100\), \(g=9.812\):</p>
+$$u_t+f(u)_x=0,\qquad f(u)=\Big[\,q,\ \tfrac{q^2}{h}+\tfrac12 g h^2\Big]^T .$$
+<h3>2.2 The fine scheme (the "truth", DNS)</h3>
+<p>Finite volumes on \(N_f=2000\) cells (\(\Delta x=0.05\)). The LLF flux through interface \(i+\tfrac12\), with the largest local wave speed \(\lambda\):</p>
+$$F_{i+1/2}=\tfrac12\big(f(u_i)+f(u_{i+1})\big)-\tfrac12\lambda_{i+1/2}(u_{i+1}-u_i),\quad
+\lambda_{i+1/2}=\max\!\big(|v_i|+\sqrt{gh_i},\ |v_{i+1}|+\sqrt{gh_{i+1}}\big),\quad
+\tfrac{d}{dt}u_i=\tfrac{F_{i-1/2}-F_{i+1/2}}{\Delta x}.$$
+<p>Time stepping is Heun's method (two Euler stages averaged). The <i>bar state</i>
+\(\bar u_{i+1/2}=\tfrac12(u_i+u_{i+1})-\tfrac{f(u_{i+1})-f(u_i)}{2\lambda_{i+1/2}}\) rewrites each Euler stage as a convex combination of \(u_i\) and bar states
+whenever \(\tfrac{\Delta t}{\Delta x}(\lambda_{i-1/2}+\lambda_{i+1/2})\le1\) (the CFL condition), which is why the depth stays positive.</p>
+<h3>2.3 Coarse variables and the exact subgrid flux</h3>
+<p>Group \(k=20\) fine cells into a macrocell and average: \(U_i=\tfrac1k\sum_{j\in\text{cell }i}u_j\) (\(N_c=100\), \(\Delta X=1\)). Averaging the fine equation gives an <b>exact</b> coarse equation:</p>
+$$\tfrac{d}{dt}U_i=\frac{(\bar F_{i-1/2}+G_{i-1/2})-(\bar F_{i+1/2}+G_{i+1/2})}{\Delta X},\qquad
+G_{i+1/2}=F(u_{ki},u_{ki+1})-\bar F(U_i,U_{i+1}),$$
+<p>where \(\bar F\) is the same LLF formula applied to the coarse averages. \(G\) is "anti-diffusive": coarse LLF smooths, \(G\) sharpens it back
+(we checked this identity to \(10^{-16}\)). The catch: \(G\) needs the fine states, which a coarse run does not have.</p>
+<h3>2.4 Learning \(G\)</h3>
+<p>Approximate \(\tilde G_{i+1/2}=\mathcal N(U_{i-1},U_i,U_{i+1},U_{i+2};\omega)\): four neighbouring cells × \((h,q)\) = 8 inputs, 2 outputs \((G^h,G^q)\),
+three hidden layers of 128 neurons with leaky-ReLU (slope 0.01), 34,434 parameters, trained on the mean-squared error</p>
+$$\mathcal L(\omega)=\frac1M\sum_{j=1}^{M}\big\|\mathcal N(U^{(j)}_{i-1},\dots,U^{(j)}_{i+2};\omega)-G^{(j)}_{i+1/2}\big\|_2^2 .$$
+<h3>2.5 Limiting with MCL</h3>
+<p>Write the corrected coarse update with limited bar states \(\bar U^{*,\pm}_{i+1/2}=\bar U_{i+1/2}\pm\tilde G^{*}_{i+1/2}/\Lambda_{i+1/2}\):</p>
+$$\tfrac{d}{dt}U_i=\tfrac1{\Delta X}\Big[\Lambda_{i-1/2}\big(\bar U^{*,+}_{i-1/2}-U_i\big)+\Lambda_{i+1/2}\big(\bar U^{*,-}_{i+1/2}-U_i\big)\Big].$$
+<p>MCL demands a <i>local maximum principle</i>: the new bar states must stay within the range of their neighbours,
+\(h_i^{\min}\le\bar h^{*,-}_{i+1/2}\le h_i^{\max}\) and \(h_{i+1}^{\min}\le\bar h^{*,+}_{i+1/2}\le h_{i+1}^{\max}\), with
+\(h_i^{\min/\max}=\min/\max(\bar h_{i-1/2},\bar h_{i+1/2})\), and the same for the velocity \(\bar v=\bar q/\bar h\).
+It is applied in two steps. <b>Height first</b> (eq. 27 of the paper):</p>
+$$\tilde G^{h,*}=\begin{cases}\min\!\big(\tilde G^h,\ \Lambda\min(\bar h-h_i^{\min},\ h_{i+1}^{\max}-\bar h)\big),&\tilde G^h\ge0\\[2pt]
+\max\!\big(\tilde G^h,\ \Lambda\max(\bar h-h_i^{\max},\ h_{i+1}^{\min}-\bar h)\big),&\tilde G^h<0\end{cases}$$
+<p><b>Then discharge:</b> limit \(\Delta\tilde G^q=\tilde G^q-\tilde G^{h,*}\bar v\) to the analogous velocity interval (eq. 31) and set
+\(\tilde G^{q,*}=\tilde G^{h,*}\bar v+\Delta\tilde G^{q,*}\). Under the CFL condition the updated \(U_i\) is then a convex combination of admissible states,
+so <b>\(h>0\) whatever the network outputs</b>. If the network is accurate the limits are inactive and MCL changes nothing.</p>
+
+<h2>3. How it runs</h2>
+<figure class="nobreak"><svg viewBox="0 0 900 262" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif" fill="#1c1c1a"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#555"/></marker></defs><text x="0" y="14" font-size="14" font-weight="700" fill="#1f5fbf">TRAINING — offline, once (about 1 hour)</text><rect x="0" y="24" width="130" height="60" rx="8" fill="#eaf1fd" stroke="#1f5fbf" stroke-width="1.5"/><text x="65.0" y="42.0" text-anchor="middle" font-size="14" fill="#1c1c1a">200 random sine</text><text x="65.0" y="59.0" text-anchor="middle" font-size="14" fill="#1c1c1a">initial</text><text x="65.0" y="76.0" text-anchor="middle" font-size="14" fill="#1c1c1a">conditions</text><rect x="154" y="24" width="130" height="60" rx="8" fill="#eaf1fd" stroke="#1f5fbf" stroke-width="1.5"/><text x="219.0" y="42.0" text-anchor="middle" font-size="14" fill="#1c1c1a">Fine DNS,</text><text x="219.0" y="59.0" text-anchor="middle" font-size="14" fill="#1c1c1a">2000 cells,</text><text x="219.0" y="76.0" text-anchor="middle" font-size="14" fill="#1c1c1a">T = 80 each</text><line x1="131" y1="54" x2="153" y2="54" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><rect x="308" y="24" width="130" height="60" rx="8" fill="#eaf1fd" stroke="#1f5fbf" stroke-width="1.5"/><text x="373.0" y="42.0" text-anchor="middle" font-size="14" fill="#1c1c1a">Average to 100</text><text x="373.0" y="59.0" text-anchor="middle" font-size="14" fill="#1c1c1a">cells; exact G</text><text x="373.0" y="76.0" text-anchor="middle" font-size="14" fill="#1c1c1a">per interface</text><line x1="285" y1="54" x2="307" y2="54" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><rect x="462" y="24" width="130" height="60" rx="8" fill="#eaf1fd" stroke="#1f5fbf" stroke-width="1.5"/><text x="527.0" y="42.0" text-anchor="middle" font-size="14" fill="#1c1c1a">Stencil → G:</text><text x="527.0" y="59.0" text-anchor="middle" font-size="14" fill="#1c1c1a">8 inputs,</text><text x="527.0" y="76.0" text-anchor="middle" font-size="14" fill="#1c1c1a">2 targets</text><line x1="439" y1="54" x2="461" y2="54" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><rect x="616" y="24" width="130" height="60" rx="8" fill="#eaf1fd" stroke="#1f5fbf" stroke-width="1.5"/><text x="681.0" y="42.0" text-anchor="middle" font-size="14" fill="#1c1c1a">Standardise,</text><text x="681.0" y="59.0" text-anchor="middle" font-size="14" fill="#1c1c1a">SGD, 2 stages,</text><text x="681.0" y="76.0" text-anchor="middle" font-size="14" fill="#1c1c1a">early stopping</text><line x1="593" y1="54" x2="615" y2="54" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><rect x="770" y="24" width="130" height="60" rx="8" fill="#1f5fbf" stroke="#1f5fbf" stroke-width="1.5"/><text x="835.0" y="42.0" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">Trained net</text><text x="835.0" y="59.0" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">34,434</text><text x="835.0" y="76.0" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">parameters</text><line x1="747" y1="54" x2="769" y2="54" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><text x="0" y="118" font-size="14" font-weight="700" fill="#c0392b">INFERENCE — online, every time step (no fine data needed)</text><rect x="0.0" y="138" width="150" height="60" rx="8" fill="#fdeeea" stroke="#c0392b" stroke-width="1.5"/><text x="75.0" y="164.5" text-anchor="middle" font-size="14" fill="#1c1c1a">Coarse state U</text><text x="75.0" y="181.5" text-anchor="middle" font-size="14" fill="#1c1c1a">100 cells</text><rect x="187.5" y="138" width="150" height="60" rx="8" fill="#fdeeea" stroke="#c0392b" stroke-width="1.5"/><text x="262.5" y="156.0" text-anchor="middle" font-size="14" fill="#1c1c1a">Net on each</text><text x="262.5" y="173.0" text-anchor="middle" font-size="14" fill="#1c1c1a">4-cell stencil</text><text x="262.5" y="190.0" text-anchor="middle" font-size="14" fill="#1c1c1a">→ raw G̃</text><line x1="151.0" y1="168" x2="186.5" y2="168" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><rect x="375.0" y="138" width="150" height="60" rx="8" fill="#c0392b" stroke="#c0392b" stroke-width="1.5"/><text x="450.0" y="156.0" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">MCL limiter</text><text x="450.0" y="173.0" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">G̃ → G̃*</text><text x="450.0" y="190.0" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">(keeps h > 0)</text><line x1="338.5" y1="168" x2="374.0" y2="168" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><rect x="562.5" y="138" width="150" height="60" rx="8" fill="#fdeeea" stroke="#c0392b" stroke-width="1.5"/><text x="637.5" y="156.0" text-anchor="middle" font-size="14" fill="#1c1c1a">F = F̄ + G̃*</text><text x="637.5" y="173.0" text-anchor="middle" font-size="14" fill="#1c1c1a">at every</text><text x="637.5" y="190.0" text-anchor="middle" font-size="14" fill="#1c1c1a">interface</text><line x1="526.0" y1="168" x2="561.5" y2="168" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><rect x="750.0" y="138" width="150" height="60" rx="8" fill="#fdeeea" stroke="#c0392b" stroke-width="1.5"/><text x="825.0" y="156.0" text-anchor="middle" font-size="14" fill="#1c1c1a">Heun update</text><text x="825.0" y="173.0" text-anchor="middle" font-size="14" fill="#1c1c1a">(2 stages)</text><text x="825.0" y="190.0" text-anchor="middle" font-size="14" fill="#1c1c1a">→ next U</text><line x1="713.5" y1="168" x2="749.0" y2="168" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><rect x="187.5" y="218" width="150" height="36" rx="8" fill="#f3f3ee" stroke="#8a8a82" stroke-width="1.5"/><text x="262.5" y="241.0" text-anchor="middle" font-size="14" fill="#1c1c1a">LLF flux F̄ from U</text><path d="M75 199 V236 H186" fill="none" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><path d="M338 236 H562 V199" fill="none" stroke="#555" stroke-width="1.6" marker-end="url(#ar)"/><path d="M825 134 V126 H75 V134" fill="none" stroke="#555" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ar)"/><text x="680" y="130" text-anchor="middle" font-size="12" fill="#6a6a64" style="paint-order:stroke" stroke="#fff" stroke-width="4">repeat for every time step</text></svg><figcaption><b>Fig. 2.</b> Training happens once offline; inference needs only the coarse state.</figcaption></figure>
+<div class="cols">
+<div><h3>Training</h3><ol>
+<li><b>Initial conditions.</b> 200 random sine waves: \(h=2+A_h\sin(2\pi k_hx/L+\varphi_h)\), \(v=V_0+A_v\sin(2\pi k_vx/L+\varphi_v)\), with \(V_0\sim U(1,2)\), \(A\sim U(0.2,0.6)\), \(k\in\{1..6\}\), \(\varphi\sim U(0,2\pi)\).</li>
+<li><b>Labels.</b> Run the fine DNS to \(T=80\). Every 10th step, average to 100 cells and compute the exact \(G\) at all 100 interfaces:
+32 million (stencil, \(G\)) pairs. (The paper keeps every step, 320 M.)</li>
+<li><b>Standardise</b> inputs and outputs (zero mean, unit variance); the last 20 % of trajectories are held out for validation.</li>
+<li><b>Optimise.</b> SGD, batch 128. Stage 1: learning rate 0.05, up to 500 epochs; stage 2: 0.001, up to 2000; early stopping in both.
+Ours stopped after 32 and 18 epochs, validation loss \(3.96\cdot10^{-4}\) (standardised units).</li></ol></div>
+<div><h3>Inference (each time step)</h3><ol>
+<li><b>Start.</b> Box-average the fine initial condition to the 100-cell state \(U\); the fine solver is never used again.</li>
+<li><b>LLF flux</b> \(\bar F\) at the 100 interfaces from \(U\).</li>
+<li><b>Network.</b> Build each 4-cell stencil, standardise, evaluate \(\mathcal N\), undo the standardisation: raw \(\tilde G\).</li>
+<li><b>MCL</b> (optional switch): \(\tilde G\to\tilde G^{*}\) by the two limiters of §2.5.</li>
+<li><b>Update.</b> \(F=\bar F+\tilde G^{*}\), \(\dot U_i=(F_{i-1/2}-F_{i+1/2})/\Delta X\). Heun's method repeats steps 2–5 for its two stages.
+The time step is the paper's 0.005, or up to 0.1.</li></ol></div></div>
+
+<h2 class="">4. What we get</h2>
+<figure class="nobreak"><img src="fig_results.png" style="width:100%"><figcaption><b>Fig. 3.</b> (a) A 100-cell model with the net follows the 2000-cell truth;
+plain coarse LLF flattens it. (b) Far outside the training range the net alone blows up; MCL keeps the run alive. (c) Training only contained flow to the right;
+building mirror symmetry into the network fixes flow to the left.</figcaption></figure>
+<p class="nobreak"><b>Table 1.</b> Relative \(\ell^2\) error of \(q\) against the fine solution averaged to 100 cells, median per group of the 20 test cases
+(paper cases, outside training range, tough, where the method breaks).</p>
+<table class="nobreak"><tr><th>model</th><th>params</th><th>paper cases</th><th>outside training</th><th>tough</th><th>breaks</th><th>all</th><th>net alone blows up</th></tr><tr><td>plain coarse LLF (no net)</td><td>–</td><td>2.57%</td><td>5.51%</td><td>16.81%</td><td>19.63%</td><td><b>7.78%</b></td><td>–</td></tr><tr><td>paper net 3×128 + MCL</td><td>34,434</td><td>0.43%</td><td>2.45%</td><td>8.13%</td><td>13.61%</td><td><b>2.94%</b></td><td>5 of 20</td></tr><tr><td>mirror-symmetric 3×128 + MCL</td><td>34,434</td><td>0.58%</td><td>1.71%</td><td>3.80%</td><td>9.64%</td><td><b>2.41%</b></td><td>3 of 20</td></tr><tr><td>small net 3×32 + MCL</td><td>2,466</td><td>0.56%</td><td>1.77%</td><td>4.98%</td><td>10.07%</td><td><b>2.52%</b></td><td>5 of 20</td></tr></table>
+<ul>
+<li><b>It works as the paper claims.</b> On the paper's own cases the 100-cell net + MCL is 0.3–0.5 % off in \(q\) against 1.5–7 % for plain coarse LLF,
+and it keeps working at mean depths \(\pm25\) % from the training value and for runs 5× longer than the training trajectories (\(t=400\) against 80, \(q\) error 0.4 %).</li>
+<li><b>MCL is a safety net, not an accuracy booster.</b> Without it the net alone blows up in 5 of 20 cases (very shallow water, near-dry troughs, strong dam breaks);
+with it, in none. Errors there stay large (dam breaks 5–26 %) because the network never saw shocks.</li>
+<li><b>MCL can also hurt.</b> For waves resolved by only 5–7 coarse cells, clipping flattens real crests: \(q\) error 15 % with MCL against 2 % without.</li>
+<li><b>Our addition (not in the paper).</b> A mirror-symmetric network, with a built-in \(x\to-x\) symmetry that the exact \(G\) obeys:
+it fixes left-moving flow (4.3 % → 0.7 %) and cuts dam-break errors by 40–80 %.</li>
+<li><b>From the paper: smaller networks.</b> The paper also trains 3×64, 3×32 and 3×16 networks and finds 32 neurons often as good as 128.
+We trained only 3×32 (on half the data) and agree: with MCL its median error is 2.5 % against 2.9 % for the 3×128 network, with 14× fewer parameters.</li>
+<li><b>The speed-up is modest.</b> One network call costs about 90 µs in PyTorch, more than a whole 2000-cell DNS right-hand side in NumPy (about 60 µs).
+At the paper's \(\Delta t=0.005\) the reduced models are therefore <i>slower</i> than the DNS here; with \(\Delta t=0.05\) they are about 2–5× faster (plain coarse LLF: 17×).</li>
+</ul>
+<p class="small"><b>Differences from the paper.</b> Training uses every 10th time step (memory). Our Fig. 6 Lax–Wendroff baseline is less diffusive than the paper's (their variant is not specified).
+The network-size study (their Figs. 9–10) is only partly reproduced: we trained 3×128 and 3×32 but not 3×64 or 3×16. An earlier version of our code built the training target \(G\) from the wrong fine cell; this report uses the corrected code
+(a test checks the exact-\(G\) identity of §2.3).</p>
+
+<h2>5. Where things are</h2>
+<div class="cols"><table class="map">
+<tr><th>module (<code>work/final_btp/swe/</code>)</th><th>implements</th></tr>
+<tr><td><code>physics.py</code>, <code>solver.py</code></td><td>§2.1–2.2: flux, LLF, bar states, Heun</td></tr>
+<tr><td><code>data.py</code></td><td>§2.3 and training data: exact \(G\), stencil</td></tr>
+<tr><td><code>network.py</code>, <code>training.py</code></td><td>§2.4: network, SGD, early stopping</td></tr>
+<tr><td><code>mcl.py</code></td><td>§2.5: height and discharge limiters</td></tr>
+<tr><td><code>tests/</code></td><td>33 checks against the paper's equations</td></tr></table>
+<div><p class="small" style="margin-top:0"><b>Run it</b> (from <code>work/final_btp</code>):</p>
+<p class="small"><code>python scripts/generate_data.py</code> → <code>python scripts/train.py</code> → <code>python scripts/precompute.py</code> → <code>python dashboard/server.py</code>, then open <code>localhost:8000</code>.
+The dashboard shows any of 20 cases (or your own upload) for all three networks side by side, with the comparison matrix of Table 1.</p></div></div>
+</body></html>

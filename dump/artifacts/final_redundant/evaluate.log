@@ -1,0 +1,18 @@
+cases_experiment ...
+  wrote runs/results/fig2_q_t200.png
+  wrote runs/results/fig3_h_t200.png
+  wrote runs/results/fig4_q_t400.png
+  done in 167 s
+lax_wendroff_experiment ...
+  wrote runs/results/fig6_lax_wendroff.png
+  done in 5 s
+timestep_experiment ...
+  wrote runs/results/fig7_timesteps_ic2.png
+  wrote runs/results/fig8_timesteps_ic3.png
+  done in 16 s
+generalization_experiment ...
+  wrote runs/results/fig11_12_generalization.png
+  done in 9 s
+nonsmooth_experiment ...
+  wrote runs/results/fig13_nonsmooth.png
+  done in 2 s

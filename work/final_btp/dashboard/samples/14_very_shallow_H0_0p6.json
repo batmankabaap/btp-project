@@ -1,0 +1,18 @@
+{
+  "name": "Very shallow water, H0 = 0.6",
+  "category": "tough",
+  "setup": "Very shallow water, H0 = 0.6, run to t = 20.",
+  "expect": "Even further outside training. MCL guarantees positivity, not accuracy, so expect it to survive but to be visibly off.",
+  "observed": "NN alone blows up. MCL-NN survives with clearly visible errors (h 3.8%, q 9%). A good example of the limiter preventing a crash without making a bad model accurate.",
+  "type": "sine",
+  "H0": 0.6,
+  "Ah": 0.2,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.3,
+  "kv": 3,
+  "phiv": 4.5,
+  "t_end": 20,
+  "dt": 0.05
+}

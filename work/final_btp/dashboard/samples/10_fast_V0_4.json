@@ -1,0 +1,18 @@
+{
+  "name": "Fast flow, V0 = 4",
+  "category": "generalization",
+  "setup": "IC 2 with mean velocity V0 = 4, twice the largest training velocity (V0 in [1, 2]).",
+  "expect": "Faster flow carries features through the domain quicker and the network extrapolates in velocity. Watch the troughs of h.",
+  "observed": "The NN alone drifts badly: q error 9.5%, and its h troughs dip too low (1.71 vs DNS 1.94). MCL-NN stays close (q error 1.6%). One of the clearest cases for the limiter.",
+  "type": "sine",
+  "H0": 2.0,
+  "Ah": 0.45,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": 4.0,
+  "Av": 0.5,
+  "kv": 3,
+  "phiv": 4.5,
+  "t_end": 100,
+  "dt": 0.05
+}

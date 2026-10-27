@@ -1,0 +1,18 @@
+{
+  "name": "Table 1, IC 1 \u2014 small waves",
+  "category": "paper",
+  "setup": "Table 1, IC 1 from the paper (Figs. 2\u20133, top left). Small height waves (Ah = 0.2, three wavelengths) riding on a uniform flow V = 1. Inside the training range.",
+  "expect": "Plain coarse LLF smears the waves away almost completely by t = 200. Both NN models should follow the black DNS line. Look closely at q: the network alone was never told to stay smooth, so small wiggles are possible.",
+  "observed": "The NN without the limiter does develop visible small-scale wiggles in q. MCL-NN removes them and is the more accurate of the two (q error 0.47% vs 0.66%). This is the paper's point about MCL cleaning up an imperfect network.",
+  "type": "sine",
+  "H0": 2.0,
+  "Ah": 0.2,
+  "kh": 3,
+  "phih": 0.0,
+  "V0": 1.0,
+  "Av": 0.0,
+  "kv": 0,
+  "phiv": 0.0,
+  "t_end": 200,
+  "dt": 0.005
+}

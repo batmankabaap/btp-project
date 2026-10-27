@@ -1,0 +1,18 @@
+{
+  "name": "Table 1, IC 2",
+  "category": "paper",
+  "setup": "Table 1, IC 2 (Figs. 2\u20133, top right). Larger waves in both height (Ah = 0.45) and velocity (Av = 0.5). Inside the training range.",
+  "expect": "A steepening, asymmetric wave profile at t = 200. The reduced models should be almost indistinguishable from the DNS; plain LLF should be visibly flattened.",
+  "observed": "Both reduced models sit on the DNS (q error 0.23% NN, 0.34% MCL-NN) while plain LLF is off by 7%. The limiter barely acts because the network is already well-behaved here.",
+  "type": "sine",
+  "H0": 2.0,
+  "Ah": 0.45,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.5,
+  "kv": 3,
+  "phiv": 4.5,
+  "t_end": 200,
+  "dt": 0.005
+}

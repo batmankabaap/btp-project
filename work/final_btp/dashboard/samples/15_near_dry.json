@@ -1,0 +1,18 @@
+{
+  "name": "Near-dry troughs, Ah = 1.7",
+  "category": "tough",
+  "setup": "IC 2 with huge height waves, Ah = 1.7, so the troughs start at h = 0.3 (training amplitudes were at most 0.6).",
+  "expect": "Near-dry troughs are where negative water heights appear first. Without a limiter, expect a crash.",
+  "observed": "The NN alone blows up within the run. MCL-NN keeps h positive throughout and, after the troughs fill in, ends within 0.2% in h.",
+  "type": "sine",
+  "H0": 2.0,
+  "Ah": 1.7,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.5,
+  "kv": 3,
+  "phiv": 4.5,
+  "t_end": 100,
+  "dt": 0.05
+}

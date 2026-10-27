@@ -1,0 +1,12 @@
+{
+  "name": "Step IC, H0 = 2.4, a = 0.5",
+  "category": "paper",
+  "setup": "Non-smooth step initial condition from the paper (eq. 32, Fig. 13): a raised middle third, H0 = 2.4, a = 0.5, fluid at rest. The network only ever saw smooth sine waves.",
+  "expect": "Two waves run out from each edge of the step and form steep fronts. A high-order flux without a limiter tends to oscillate at fronts, so this is where MCL should matter.",
+  "observed": "Fronts stay sharp and well placed (h error 0.67% for MCL-NN). At this time the NN without MCL is fine too, even slightly better (0.51%), with no visible overshoots; the paper's warning applies more to stronger steps (see the dam-break cases).",
+  "type": "step",
+  "H0": 2.4,
+  "a": 0.5,
+  "t_end": 20,
+  "dt": 0.05
+}

@@ -1,0 +1,18 @@
+{
+  "name": "IC 2 with H0 = 2.5",
+  "category": "generalization",
+  "setup": "IC 2 with mean depth H0 = 2.5 (paper Fig. 12), 25% deeper than all training data (H0 = 2).",
+  "expect": "Deeper water means faster waves, so the network is queried on states it never saw. The paper reports good results in this \u00b125% band.",
+  "observed": "Works well: h error 0.22% for MCL-NN, about as good as inside the training range.",
+  "type": "sine",
+  "H0": 2.5,
+  "Ah": 0.45,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.5,
+  "kv": 3,
+  "phiv": 4.5,
+  "t_end": 100,
+  "dt": 0.05
+}

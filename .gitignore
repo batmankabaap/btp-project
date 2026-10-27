@@ -1,0 +1,25 @@
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Training dataset: 1.3 GB, over GitHub's 100 MB limit.
+# Rebuild with work/final_btp/scripts/generate_data.py (~7 min).
+*.npz
+
+# Local run outputs of final_btp (the kept results live in work/artifacts/final)
+work/final_btp/runs/
+work/final_btp/results/
+
+# LaTeX build intermediates
+work/report_latex/*.aux
+work/report_latex/*.log
+work/report_latex/*.out
+work/report_latex/*.xdv
+work/report_latex/*.synctex.gz

@@ -1,0 +1,18 @@
+{
+  "name": "Short waves, kh = kv = 15",
+  "category": "breaks",
+  "setup": "Short waves, kh = kv = 15: only about 7 coarse cells per wavelength (training had at most 6 waves, i.e. at least 17 cells per wavelength). Run to t = 5.",
+  "expect": "Waves this short are barely resolved on the coarse mesh. MCL's local bounds treat each wave crest as a potential overshoot and clip it.",
+  "observed": "The limiter hurts here: q error 15% for MCL-NN vs 2.2% for the NN alone. MCL flattens the crests the network was correctly reproducing.",
+  "type": "sine",
+  "H0": 2.0,
+  "Ah": 0.3,
+  "kh": 15,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.3,
+  "kv": 15,
+  "phiv": 4.5,
+  "t_end": 5,
+  "dt": 0.05
+}

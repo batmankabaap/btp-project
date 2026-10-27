@@ -1,0 +1,32 @@
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Case & Coarse LLF & \paper{} alone & \paper{} + MCL & \ours{} alone & \ours{} + MCL \\ \midrule
+\multicolumn{6}{l}{\textit{Paper cases}} \\
+Table 1, IC 1 (small waves) & 2.17\% & 0.66\% & 0.47\% & 0.39\% & \textbf{0.40\%} \\
+Table 1, IC 2 & 7.00\% & 0.23\% & \textbf{0.34\%} & 0.47\% & 0.48\% \\
+Table 1, IC 3 & 1.50\% & 0.42\% & \textbf{0.51\%} & 0.72\% & 0.80\% \\
+Table 1, IC 4 & 2.97\% & 0.21\% & \textbf{0.31\%} & 0.38\% & 0.41\% \\
+IC 1, long run $t{=}400$ & 1.12\% & 0.66\% & \textbf{0.39\%} & 0.70\% & 0.68\% \\
+Step IC, $a{=}0.5$ & 74.10\% & 18.93\% & \textbf{18.53\%} & 21.54\% & 25.15\% \\
+\addlinespace
+\multicolumn{6}{l}{\textit{Outside the training range}} \\
+Depth $H_0{=}2.5$ & 6.19\% & 1.00\% & 1.16\% & 0.79\% & \textbf{1.14\%} \\
+Depth $H_0{=}1.25$ & 7.56\% & 4.40\% & \textbf{2.59\%} & 3.13\% & 2.70\% \\
+Depth $H_0{=}3.5$ & 7.99\% & 4.69\% & 3.91\% & 3.53\% & \textbf{2.94\%} \\
+Fast flow $V_0{=}4$ & 2.59\% & 9.48\% & 1.55\% & 10.64\% & \textbf{1.31\%} \\
+Flow to the left $V_0{=}{-}1.5$ & 4.83\% & 3.98\% & 4.27\% & 0.36\% & \textbf{0.69\%} \\
+Short waves, $\Delta T{=}0.1$ & 0.68\% & 2.00\% & 2.32\% & 1.23\% & \textbf{2.11\%} \\
+\addlinespace
+\multicolumn{6}{l}{\textit{Tough cases}} \\
+Shallow water $H_0{=}1.0$ & 8.10\% & \textcolor{gray}{\textit{blew up}} & \textbf{3.28\%} & 5.60\% & 3.80\% \\
+Very shallow $H_0{=}0.6$ & 16.81\% & \textcolor{gray}{\textit{blew up}} & 9.24\% & \textcolor{gray}{\textit{blew up}} & \textbf{7.12\%} \\
+Near-dry troughs, $A_h{=}1.7$ & 9.06\% & \textcolor{gray}{\textit{blew up}} & 1.11\% & \textcolor{gray}{\textit{blew up}} & \textbf{0.89\%} \\
+Strong dam break, $a{=}2.5$ & 62.49\% & \textcolor{gray}{\textit{blew up}} & 25.63\% & 12.95\% & \textbf{5.82\%} \\
+Dam break into shallow water & 34.57\% & \textcolor{gray}{\textit{blew up}} & 8.13\% & \textcolor{gray}{\textit{blew up}} & \textbf{3.41\%} \\
+\addlinespace
+\multicolumn{6}{l}{\textit{Cases where the method breaks}} \\
+Medium dam break, $a{=}1.5$ & 52.89\% & 22.29\% & 13.61\% & 13.37\% & \textbf{8.37\%} \\
+Short waves, $k{=}15$ & 19.63\% & 2.21\% & \textbf{15.29\%} & 4.68\% & 15.63\% \\
+Short waves, $k{=}20$ & 11.12\% & 2.79\% & \textbf{9.52\%} & 6.29\% & 9.64\% \\
+\bottomrule
+\end{tabular}

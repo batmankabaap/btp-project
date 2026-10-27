@@ -1,0 +1,12 @@
+{
+  "name": "Strong dam break, a = 2.5",
+  "category": "tough",
+  "setup": "Strong dam break: step from h = 0.75 to h = 4.5 (H0 = 2, a = 2.5), far outside training.",
+  "expect": "Strong shocks form immediately. The network has never seen shocks, and the coarse mesh can only resolve them over 1\u20132 cells.",
+  "observed": "NN alone blows up. MCL-NN survives, but q is poor near the shocks (26% error) even though h looks reasonable (4.3%).",
+  "type": "step",
+  "H0": 2.0,
+  "a": 2.5,
+  "t_end": 20,
+  "dt": 0.05
+}

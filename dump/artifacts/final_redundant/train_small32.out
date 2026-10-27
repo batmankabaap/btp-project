@@ -1,0 +1,45 @@
+[22:34:20] train 12,800,000 samples, valid 3,200,000 samples
+[22:34:20] architecture {'hidden': 32, 'symmetric': False}, 2,466 parameters
+[22:34:50] stage1 epoch    1  lr 0.05  train 6.814e-03  valid 1.959e-03 *  30 s
+[22:35:21] stage1 epoch    2  lr 0.05  train 1.564e-03  valid 1.742e-03 *  31 s
+[22:35:50] stage1 epoch    3  lr 0.05  train 1.235e-03  valid 1.152e-03 *  29 s
+[22:36:24] stage1 epoch    4  lr 0.05  train 1.073e-03  valid 1.072e-03 *  33 s
+[22:37:01] stage1 epoch    5  lr 0.05  train 9.903e-04  valid 1.077e-03    37 s
+[22:37:40] stage1 epoch    6  lr 0.05  train 9.276e-04  valid 1.058e-03 *  40 s
+[22:38:18] stage1 epoch    7  lr 0.05  train 8.821e-04  valid 9.814e-04 *  38 s
+[22:38:58] stage1 epoch    8  lr 0.05  train 8.485e-04  valid 9.401e-04 *  40 s
+[22:39:29] stage1 epoch    9  lr 0.05  train 8.199e-04  valid 9.455e-04    31 s
+[22:40:01] stage1 epoch   10  lr 0.05  train 7.932e-04  valid 9.193e-04 *  32 s
+[22:40:31] stage1 epoch   11  lr 0.05  train 7.699e-04  valid 9.993e-04    30 s
+[22:41:02] stage1 epoch   12  lr 0.05  train 7.507e-04  valid 8.236e-04 *  32 s
+[22:41:31] stage1 epoch   13  lr 0.05  train 7.342e-04  valid 8.762e-04    29 s
+[22:42:01] stage1 epoch   14  lr 0.05  train 7.185e-04  valid 7.761e-04 *  30 s
+[22:42:29] stage1 epoch   15  lr 0.05  train 7.022e-04  valid 1.150e-03    27 s
+[22:42:55] stage1 epoch   16  lr 0.05  train 6.958e-04  valid 7.826e-04    27 s
+[22:43:25] stage1 epoch   17  lr 0.05  train 6.826e-04  valid 8.120e-04    29 s
+[22:43:52] stage1 epoch   18  lr 0.05  train 6.742e-04  valid 7.818e-04    27 s
+[22:44:19] stage1 epoch   19  lr 0.05  train 6.615e-04  valid 8.180e-04    27 s
+[22:44:19] stage1 early stop after 19 epochs
+[22:44:47] stage2 epoch    1  lr 0.001  train 5.778e-04  valid 7.545e-04 *  28 s
+[22:45:19] stage2 epoch    2  lr 0.001  train 5.749e-04  valid 7.543e-04 *  32 s
+[22:45:45] stage2 epoch    3  lr 0.001  train 5.741e-04  valid 7.534e-04 *  26 s
+[22:46:12] stage2 epoch    4  lr 0.001  train 5.734e-04  valid 7.514e-04 *  26 s
+[22:46:40] stage2 epoch    5  lr 0.001  train 5.729e-04  valid 7.529e-04    28 s
+[22:47:07] stage2 epoch    6  lr 0.001  train 5.723e-04  valid 7.576e-04    27 s
+[22:47:44] stage2 epoch    7  lr 0.001  train 5.719e-04  valid 7.511e-04 *  37 s
+[22:48:17] stage2 epoch    8  lr 0.001  train 5.715e-04  valid 7.514e-04    33 s
+[22:49:14] stage2 epoch    9  lr 0.001  train 5.710e-04  valid 7.513e-04    56 s
+[22:49:58] stage2 epoch   10  lr 0.001  train 5.707e-04  valid 7.504e-04 *  44 s
+[22:50:39] stage2 epoch   11  lr 0.001  train 5.704e-04  valid 7.490e-04 *  41 s
+[22:51:25] stage2 epoch   12  lr 0.001  train 5.701e-04  valid 7.484e-04 *  47 s
+[22:51:53] stage2 epoch   13  lr 0.001  train 5.698e-04  valid 7.518e-04    28 s
+[22:52:19] stage2 epoch   14  lr 0.001  train 5.694e-04  valid 7.545e-04    26 s
+[22:52:43] stage2 epoch   15  lr 0.001  train 5.690e-04  valid 7.488e-04    24 s
+[22:53:06] stage2 epoch   16  lr 0.001  train 5.687e-04  valid 7.467e-04 *  24 s
+[22:53:31] stage2 epoch   17  lr 0.001  train 5.684e-04  valid 7.490e-04    25 s
+[22:53:56] stage2 epoch   18  lr 0.001  train 5.682e-04  valid 7.530e-04    25 s
+[22:54:21] stage2 epoch   19  lr 0.001  train 5.679e-04  valid 7.510e-04    25 s
+[22:54:45] stage2 epoch   20  lr 0.001  train 5.675e-04  valid 7.473e-04    24 s
+[22:55:07] stage2 epoch   21  lr 0.001  train 5.673e-04  valid 7.492e-04    22 s
+[22:55:07] stage2 early stop after 21 epochs
+[22:55:09] saved ../artifacts/final/model_small32.pt  (train loss 5.677e-04 normalized)

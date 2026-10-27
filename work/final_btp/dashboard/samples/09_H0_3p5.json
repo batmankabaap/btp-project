@@ -1,0 +1,18 @@
+{
+  "name": "IC 2 with H0 = 3.5",
+  "category": "generalization",
+  "setup": "IC 2 with H0 = 3.5, 75% deeper than training.",
+  "expect": "The paper says the models hold up better for larger depths than for smaller ones. Expect a stable run with moderate error.",
+  "observed": "Stable, but less accurate than inside training: q error about 4% for both reduced models.",
+  "type": "sine",
+  "H0": 3.5,
+  "Ah": 0.45,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.5,
+  "kv": 3,
+  "phiv": 4.5,
+  "t_end": 100,
+  "dt": 0.05
+}

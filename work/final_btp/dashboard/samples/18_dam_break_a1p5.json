@@ -1,0 +1,12 @@
+{
+  "name": "Medium dam break, a = 1.5",
+  "category": "breaks",
+  "setup": "Medium dam break: step from h = 1.25 to h = 3.5 (H0 = 2, a = 1.5).",
+  "expect": "Neither model should crash here, so this shows accuracy at shocks rather than survival.",
+  "observed": "Both reduced models run, but the shocks are smeared and slightly mispositioned: q error 22% for the NN and 14% for MCL-NN (plain LLF: 53%). The method is not designed for shocks, and it shows.",
+  "type": "step",
+  "H0": 2.0,
+  "a": 1.5,
+  "t_end": 20,
+  "dt": 0.05
+}

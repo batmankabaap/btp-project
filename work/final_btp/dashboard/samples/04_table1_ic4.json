@@ -1,0 +1,18 @@
+{
+  "name": "Table 1, IC 4",
+  "category": "paper",
+  "setup": "Table 1, IC 4 (Figs. 2\u20133, bottom right). Small height waves with a weak velocity perturbation (Av = 0.1).",
+  "expect": "A gentle multi-scale profile. Everything except plain LLF should agree closely.",
+  "observed": "Both reduced models agree with the DNS (q error 0.21% NN, 0.31% MCL-NN).",
+  "type": "sine",
+  "H0": 2.0,
+  "Ah": 0.2,
+  "kh": 3,
+  "phih": 0.0,
+  "V0": 1.1,
+  "Av": 0.1,
+  "kv": 2,
+  "phiv": 0.0,
+  "t_end": 200,
+  "dt": 0.005
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Very short waves, kh = kv = 20",
+  "category": "breaks",
+  "setup": "Very short waves, kh = kv = 20: about 5 coarse cells per wavelength. Run to t = 3.",
+  "expect": "Even less resolution than case 19. Expect MCL to flatten the waves almost entirely.",
+  "observed": "MCL-NN flattens the waves almost completely (minimum h 2.00 vs 1.86 in the DNS): h error 4.1% vs 1.1% for the NN alone. The limiter, not the network, is the failure point here.",
+  "type": "sine",
+  "H0": 2.0,
+  "Ah": 0.3,
+  "kh": 20,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.3,
+  "kv": 20,
+  "phiv": 4.5,
+  "t_end": 3,
+  "dt": 0.05
+}

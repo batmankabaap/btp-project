@@ -1,0 +1,18 @@
+{
+  "name": "IC 2 with H0 = 1.25",
+  "category": "generalization",
+  "setup": "IC 2 with H0 = 1.25 and smaller waves (Ah = 0.3), 37% shallower than training.",
+  "expect": "Beyond the paper's \u00b125% band. The paper says performance drops faster for shallower water, so expect visible errors and possibly wiggles without the limiter.",
+  "observed": "Accuracy drops, and the limiter clearly helps: q error 4.4% for the NN alone vs 2.6% for MCL-NN.",
+  "type": "sine",
+  "H0": 1.25,
+  "Ah": 0.3,
+  "kh": 4,
+  "phih": 2.78,
+  "V0": 1.1,
+  "Av": 0.5,
+  "kv": 3,
+  "phiv": 4.5,
+  "t_end": 100,
+  "dt": 0.05
+}
